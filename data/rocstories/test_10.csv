@@ -1,0 +1,301 @@
+id,category,subcategory,dataset_source,background,reference,prompt_loose,prompt_moderate,prompt_strict,meta_lang,meta_license,meta_bg_sentences,split
+ST_b65121f6c3,story,narrative_continuation,mintujupally/ROCStories,The baby shook from the cold room. His mother turned up the heat.,The nurses kept turning it back down. She was angry that they were making him uncomfortable. She told the doctor she wanted to go home.,"Imagine and continue the story in your own words, from diverse perspectives. Discuss plausible developments and explore alternative angles without imposing hard constraints.
+
+Beginning:
+The baby shook from the cold room. His mother turned up the heat.
+
+Your continuation:","Explain three key narrative moves to conclude the story (setup -> complication -> resolution). Cover critical aspects, ensure clarity, and provide at least one concrete callback to earlier events.
+
+Beginning:
+The baby shook from the cold room. His mother turned up the heat.
+
+Format:
+- Move 1 (what & why): <text>
+- Move 2 (what & why): <text>
+- Move 3 (what & why): <text>
+
+Now write the continuation reflecting these moves:
+Your continuation:","Provide a chronologically ordered continuation that follows the template exactly. Do not introduce new named entities; reuse only those present or entailed by the beginning.
+
+Template (fill every line):
+[1] Sentence 1 -- (callback: <prior event>)
+[2] Sentence 2 -- (cause/effect)
+[3] Sentence 3 -- (escalation or resolution step)
+[4] Sentence 4 -- (closure)
+Entities reused: <list exact names>
+Rationale (<=15 words): <why this resolution follows logically>
+
+Beginning:
+The baby shook from the cold room. His mother turned up the heat.
+
+Your output:",en,CC-BY-4.0 (per HF card),2,test
+ST_dd0751eb6b,story,narrative_continuation,mintujupally/ROCStories,"People shook their heads because Stu wouldn't buy a car. Each day, Stu pedaled a bike ten miles to and from work.","While his peers suffered health woes, Stu was as fit as a teen. When Stu retired, many of his buddies were already dead. Stu rode his bike to visit them at the cemetery regularly.","Imagine and continue the story in your own words, from diverse perspectives. Discuss plausible developments and explore alternative angles without imposing hard constraints.
+
+Beginning:
+People shook their heads because Stu wouldn't buy a car. Each day, Stu pedaled a bike ten miles to and from work.
+
+Your continuation:","Explain three key narrative moves to conclude the story (setup -> complication -> resolution). Cover critical aspects, ensure clarity, and provide at least one concrete callback to earlier events.
+
+Beginning:
+People shook their heads because Stu wouldn't buy a car. Each day, Stu pedaled a bike ten miles to and from work.
+
+Format:
+- Move 1 (what & why): <text>
+- Move 2 (what & why): <text>
+- Move 3 (what & why): <text>
+
+Now write the continuation reflecting these moves:
+Your continuation:","Provide a chronologically ordered continuation that follows the template exactly. Do not introduce new named entities; reuse only those present or entailed by the beginning.
+
+Template (fill every line):
+[1] Sentence 1 -- (callback: <prior event>)
+[2] Sentence 2 -- (cause/effect)
+[3] Sentence 3 -- (escalation or resolution step)
+[4] Sentence 4 -- (closure)
+Entities reused: <list exact names>
+Rationale (<=15 words): <why this resolution follows logically>
+
+Beginning:
+People shook their heads because Stu wouldn't buy a car. Each day, Stu pedaled a bike ten miles to and from work.
+
+Your output:",en,CC-BY-4.0 (per HF card),2,test
+ST_b8115aba8a,story,narrative_continuation,mintujupally/ROCStories,"Sue drank wine daily, but never felt like she was drunk. Her stomach began to swell and her appetite faded badly.",She went to the doctor and was told that she was having liver failure. He recommended a transplant after 6 months of sobriety. She received stem cell treatment in Mexico and her liver was healed.,"Imagine and continue the story in your own words, from diverse perspectives. Discuss plausible developments and explore alternative angles without imposing hard constraints.
+
+Beginning:
+Sue drank wine daily, but never felt like she was drunk. Her stomach began to swell and her appetite faded badly.
+
+Your continuation:","Explain three key narrative moves to conclude the story (setup -> complication -> resolution). Cover critical aspects, ensure clarity, and provide at least one concrete callback to earlier events.
+
+Beginning:
+Sue drank wine daily, but never felt like she was drunk. Her stomach began to swell and her appetite faded badly.
+
+Format:
+- Move 1 (what & why): <text>
+- Move 2 (what & why): <text>
+- Move 3 (what & why): <text>
+
+Now write the continuation reflecting these moves:
+Your continuation:","Provide a chronologically ordered continuation that follows the template exactly. Do not introduce new named entities; reuse only those present or entailed by the beginning.
+
+Template (fill every line):
+[1] Sentence 1 -- (callback: <prior event>)
+[2] Sentence 2 -- (cause/effect)
+[3] Sentence 3 -- (escalation or resolution step)
+[4] Sentence 4 -- (closure)
+Entities reused: <list exact names>
+Rationale (<=15 words): <why this resolution follows logically>
+
+Beginning:
+Sue drank wine daily, but never felt like she was drunk. Her stomach began to swell and her appetite faded badly.
+
+Your output:",en,CC-BY-4.0 (per HF card),2,test
+ST_33ad92e31b,story,narrative_continuation,mintujupally/ROCStories,George had gone to the bar. He had drank too many beers.,George was barely able to walk. The bartender called George's wife. She came to the bar to pick up George.,"Imagine and continue the story in your own words, from diverse perspectives. Discuss plausible developments and explore alternative angles without imposing hard constraints.
+
+Beginning:
+George had gone to the bar. He had drank too many beers.
+
+Your continuation:","Explain three key narrative moves to conclude the story (setup -> complication -> resolution). Cover critical aspects, ensure clarity, and provide at least one concrete callback to earlier events.
+
+Beginning:
+George had gone to the bar. He had drank too many beers.
+
+Format:
+- Move 1 (what & why): <text>
+- Move 2 (what & why): <text>
+- Move 3 (what & why): <text>
+
+Now write the continuation reflecting these moves:
+Your continuation:","Provide a chronologically ordered continuation that follows the template exactly. Do not introduce new named entities; reuse only those present or entailed by the beginning.
+
+Template (fill every line):
+[1] Sentence 1 -- (callback: <prior event>)
+[2] Sentence 2 -- (cause/effect)
+[3] Sentence 3 -- (escalation or resolution step)
+[4] Sentence 4 -- (closure)
+Entities reused: <list exact names>
+Rationale (<=15 words): <why this resolution follows logically>
+
+Beginning:
+George had gone to the bar. He had drank too many beers.
+
+Your output:",en,CC-BY-4.0 (per HF card),2,test
+ST_8567692b06,story,narrative_continuation,mintujupally/ROCStories,Marissa was driving down the road late one night. She was getting tired and began rubbing her eyes.,Suddenly one of her contacts popped out. She had to quickly pull over because she couldn't see at all. Luckily she was able to replace her contact soon.,"Imagine and continue the story in your own words, from diverse perspectives. Discuss plausible developments and explore alternative angles without imposing hard constraints.
+
+Beginning:
+Marissa was driving down the road late one night. She was getting tired and began rubbing her eyes.
+
+Your continuation:","Explain three key narrative moves to conclude the story (setup -> complication -> resolution). Cover critical aspects, ensure clarity, and provide at least one concrete callback to earlier events.
+
+Beginning:
+Marissa was driving down the road late one night. She was getting tired and began rubbing her eyes.
+
+Format:
+- Move 1 (what & why): <text>
+- Move 2 (what & why): <text>
+- Move 3 (what & why): <text>
+
+Now write the continuation reflecting these moves:
+Your continuation:","Provide a chronologically ordered continuation that follows the template exactly. Do not introduce new named entities; reuse only those present or entailed by the beginning.
+
+Template (fill every line):
+[1] Sentence 1 -- (callback: <prior event>)
+[2] Sentence 2 -- (cause/effect)
+[3] Sentence 3 -- (escalation or resolution step)
+[4] Sentence 4 -- (closure)
+Entities reused: <list exact names>
+Rationale (<=15 words): <why this resolution follows logically>
+
+Beginning:
+Marissa was driving down the road late one night. She was getting tired and began rubbing her eyes.
+
+Your output:",en,CC-BY-4.0 (per HF card),2,test
+ST_97c311aafa,story,narrative_continuation,mintujupally/ROCStories,In elementary school the officials sold stationary before class. One day I bought a little pack of erasers for fifty cents.,In the pack was a tiny gingerbread man. I loved this eraser the most and always kept it on my desk. Then one day I lost him and that was so so sad.,"Imagine and continue the story in your own words, from diverse perspectives. Discuss plausible developments and explore alternative angles without imposing hard constraints.
+
+Beginning:
+In elementary school the officials sold stationary before class. One day I bought a little pack of erasers for fifty cents.
+
+Your continuation:","Explain three key narrative moves to conclude the story (setup -> complication -> resolution). Cover critical aspects, ensure clarity, and provide at least one concrete callback to earlier events.
+
+Beginning:
+In elementary school the officials sold stationary before class. One day I bought a little pack of erasers for fifty cents.
+
+Format:
+- Move 1 (what & why): <text>
+- Move 2 (what & why): <text>
+- Move 3 (what & why): <text>
+
+Now write the continuation reflecting these moves:
+Your continuation:","Provide a chronologically ordered continuation that follows the template exactly. Do not introduce new named entities; reuse only those present or entailed by the beginning.
+
+Template (fill every line):
+[1] Sentence 1 -- (callback: <prior event>)
+[2] Sentence 2 -- (cause/effect)
+[3] Sentence 3 -- (escalation or resolution step)
+[4] Sentence 4 -- (closure)
+Entities reused: <list exact names>
+Rationale (<=15 words): <why this resolution follows logically>
+
+Beginning:
+In elementary school the officials sold stationary before class. One day I bought a little pack of erasers for fifty cents.
+
+Your output:",en,CC-BY-4.0 (per HF card),2,test
+ST_e0f4388908,story,narrative_continuation,mintujupally/ROCStories,Ed went on a hiking trip. He ventured deep into the forest.,He was having a great time exploring the woods! But soon it began to grow dark. Ed decided to head back before he became lost.,"Imagine and continue the story in your own words, from diverse perspectives. Discuss plausible developments and explore alternative angles without imposing hard constraints.
+
+Beginning:
+Ed went on a hiking trip. He ventured deep into the forest.
+
+Your continuation:","Explain three key narrative moves to conclude the story (setup -> complication -> resolution). Cover critical aspects, ensure clarity, and provide at least one concrete callback to earlier events.
+
+Beginning:
+Ed went on a hiking trip. He ventured deep into the forest.
+
+Format:
+- Move 1 (what & why): <text>
+- Move 2 (what & why): <text>
+- Move 3 (what & why): <text>
+
+Now write the continuation reflecting these moves:
+Your continuation:","Provide a chronologically ordered continuation that follows the template exactly. Do not introduce new named entities; reuse only those present or entailed by the beginning.
+
+Template (fill every line):
+[1] Sentence 1 -- (callback: <prior event>)
+[2] Sentence 2 -- (cause/effect)
+[3] Sentence 3 -- (escalation or resolution step)
+[4] Sentence 4 -- (closure)
+Entities reused: <list exact names>
+Rationale (<=15 words): <why this resolution follows logically>
+
+Beginning:
+Ed went on a hiking trip. He ventured deep into the forest.
+
+Your output:",en,CC-BY-4.0 (per HF card),2,test
+ST_82abcdfba2,story,narrative_continuation,mintujupally/ROCStories,"Mason was building his home with lumber from trees in his yard. He worked hard every day, with just his cousin for companion.","After a couple months of labor, the house was finally finished. Mason lit a cigarette on the porch, and fell asleep. He woke up to the smell of smoke and flames of his home burning.","Imagine and continue the story in your own words, from diverse perspectives. Discuss plausible developments and explore alternative angles without imposing hard constraints.
+
+Beginning:
+Mason was building his home with lumber from trees in his yard. He worked hard every day, with just his cousin for companion.
+
+Your continuation:","Explain three key narrative moves to conclude the story (setup -> complication -> resolution). Cover critical aspects, ensure clarity, and provide at least one concrete callback to earlier events.
+
+Beginning:
+Mason was building his home with lumber from trees in his yard. He worked hard every day, with just his cousin for companion.
+
+Format:
+- Move 1 (what & why): <text>
+- Move 2 (what & why): <text>
+- Move 3 (what & why): <text>
+
+Now write the continuation reflecting these moves:
+Your continuation:","Provide a chronologically ordered continuation that follows the template exactly. Do not introduce new named entities; reuse only those present or entailed by the beginning.
+
+Template (fill every line):
+[1] Sentence 1 -- (callback: <prior event>)
+[2] Sentence 2 -- (cause/effect)
+[3] Sentence 3 -- (escalation or resolution step)
+[4] Sentence 4 -- (closure)
+Entities reused: <list exact names>
+Rationale (<=15 words): <why this resolution follows logically>
+
+Beginning:
+Mason was building his home with lumber from trees in his yard. He worked hard every day, with just his cousin for companion.
+
+Your output:",en,CC-BY-4.0 (per HF card),2,test
+ST_d32a6f0e26,story,narrative_continuation,mintujupally/ROCStories,Boris loved video games. He played video games everyday for hours.,His older brother bought him a new game for his birthday. Boris was elated when he received his gift. Boris and his brother played the game the rest of the weekend.,"Imagine and continue the story in your own words, from diverse perspectives. Discuss plausible developments and explore alternative angles without imposing hard constraints.
+
+Beginning:
+Boris loved video games. He played video games everyday for hours.
+
+Your continuation:","Explain three key narrative moves to conclude the story (setup -> complication -> resolution). Cover critical aspects, ensure clarity, and provide at least one concrete callback to earlier events.
+
+Beginning:
+Boris loved video games. He played video games everyday for hours.
+
+Format:
+- Move 1 (what & why): <text>
+- Move 2 (what & why): <text>
+- Move 3 (what & why): <text>
+
+Now write the continuation reflecting these moves:
+Your continuation:","Provide a chronologically ordered continuation that follows the template exactly. Do not introduce new named entities; reuse only those present or entailed by the beginning.
+
+Template (fill every line):
+[1] Sentence 1 -- (callback: <prior event>)
+[2] Sentence 2 -- (cause/effect)
+[3] Sentence 3 -- (escalation or resolution step)
+[4] Sentence 4 -- (closure)
+Entities reused: <list exact names>
+Rationale (<=15 words): <why this resolution follows logically>
+
+Beginning:
+Boris loved video games. He played video games everyday for hours.
+
+Your output:",en,CC-BY-4.0 (per HF card),2,test
+ST_4cdde11bbe,story,narrative_continuation,mintujupally/ROCStories,Anna knew she needed help with her debts and credit score. She had always wanted credit counseling.,"It was expensive, so she had never gotten it. But finally she made an appointment with a financial advisor. He helped her greatly and Anna was so happy she'd done it!","Imagine and continue the story in your own words, from diverse perspectives. Discuss plausible developments and explore alternative angles without imposing hard constraints.
+
+Beginning:
+Anna knew she needed help with her debts and credit score. She had always wanted credit counseling.
+
+Your continuation:","Explain three key narrative moves to conclude the story (setup -> complication -> resolution). Cover critical aspects, ensure clarity, and provide at least one concrete callback to earlier events.
+
+Beginning:
+Anna knew she needed help with her debts and credit score. She had always wanted credit counseling.
+
+Format:
+- Move 1 (what & why): <text>
+- Move 2 (what & why): <text>
+- Move 3 (what & why): <text>
+
+Now write the continuation reflecting these moves:
+Your continuation:","Provide a chronologically ordered continuation that follows the template exactly. Do not introduce new named entities; reuse only those present or entailed by the beginning.
+
+Template (fill every line):
+[1] Sentence 1 -- (callback: <prior event>)
+[2] Sentence 2 -- (cause/effect)
+[3] Sentence 3 -- (escalation or resolution step)
+[4] Sentence 4 -- (closure)
+Entities reused: <list exact names>
+Rationale (<=15 words): <why this resolution follows logically>
+
+Beginning:
+Anna knew she needed help with her debts and credit score. She had always wanted credit counseling.
+
+Your output:",en,CC-BY-4.0 (per HF card),2,test

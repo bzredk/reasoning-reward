@@ -1,0 +1,28 @@
+version: "3.8"
+
+services:
+  deepseek:
+    build: .
+    container_name: deepseek-grpo
+    tty: true
+    shm_size: "16g"                 # large /dev/shm for long context
+    environment:
+      - HF_HOME=/root/.cache/huggingface
+      # - HUGGINGFACE_HUB_TOKEN=your_token_here
+    volumes:
+      - ./app:/workspace/app
+      - ./data:/workspace/data
+      - ./checkpoints:/workspace/ckpt
+      - ./hf_cache:/root/.cache/huggingface
+      - ./models:/workspace/models   # <-- Windows-safe cache mount
+    # GPU options:
+    # 1) Newer Compose often works with this 'deploy' stanza (ignored on classic compose, safe to keep):
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
+    # 2) Legacy fallback (if above doesn't work, keep this or run with --gpus all):
+    runtime: nvidia
+    ports:
+      - "8000:8000"
