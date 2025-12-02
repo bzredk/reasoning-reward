@@ -27,3 +27,18 @@ models/*
 checkpoints/*
 !checkpoints/traces/
 !checkpoints/traces/**
+
+# Local output directories
+outputs/
+
+# Local data directories
+data/persona/
+data/curiosity/
+data/brainteaser/
+
+# Local source and evaluation code
+app/local_model_src/
+app/eval_all/
+
+# Ignore specific file
+app/openrouter_client.py
