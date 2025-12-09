@@ -10,8 +10,8 @@
 # - < 30 words: 0
 # - 30–80 words: linear up to +1.0
 # - > 80 words: capped at +1.0
-# - bonus 再乘以 lambda_gate(ic, rel) 做门控
-# - 长且低相关/低连贯会有 verbosity_penalty
+# - bonus multiply lambda_gate(ic, rel) as gate control
+# - long and low relevence/low Coherence  verbosity_penalty
 # - overall_quality clipped to [0, 5]
 
 import os

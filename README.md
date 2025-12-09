@@ -46,7 +46,7 @@ python -m app.roc_eval.judge_llm \
 
 ---
 
-## 📘 Project Overview — Narrative Continuation Evaluation & Reward Model Training
+##  Project Overview — Narrative Continuation Evaluation & Reward Model Training
 
 This project evaluates narrative-continuation performance across multiple prompting setups and introduces a Reward Model (RM) to improve generation quality through reranking.
 
@@ -55,7 +55,7 @@ The goal is to evaluate how well an LLM can produce a coherent continuation give
 
 ---
 
-## 1. 📂 Training Data Pipeline
+## 1.  Training Data Pipeline
 
 We construct several JSONL datasets from 1000 ROCStories items.
 
@@ -71,6 +71,22 @@ We construct several JSONL datasets from 1000 ROCStories items.
   - *Creativity*
 - Produces **2000 high-quality training samples**.
 
+Example record (single scored completion):
+
+```json
+{
+  "story_id": 12,
+  "prompt": "...",
+  "completion": "...",
+  "information_completeness": 4.0,
+  "factual_accuracy": 3.5,
+  "relevance": 4.5,
+  "logical_coherence": 4.0,
+  "creativity_expression": 3.5,
+  "overall_quality": 4.0,
+  "overall_raw": 3.9
+}
+```
 ---
 
 ### **1.2 strict_scored_train1000_local.jsonl**
@@ -96,7 +112,7 @@ Used for:
 
 ---
 
-## 2. 🎯 Reward Model (RM)
+## 2.  Reward Model (RM)
 
 Training script:
 
@@ -111,7 +127,7 @@ app/rm/train_rm.py
 
 ---
 
-## 3. 🔁 RM-Guided Reranking
+## 3.  RM-Guided Reranking
 
 Script:
 
@@ -129,7 +145,7 @@ This produces much stronger strict-prompt outputs.
 
 ---
 
-## 4. 🧪 Evaluation Setup — Three Baselines + RM Rerank
+## 4.  Evaluation Setup — Three Baselines + RM Rerank
 
 We evaluate 500 ROCStories test examples using:
 
@@ -149,7 +165,7 @@ data/rocstories/narrative_scores_test500_strict_rm_rerank3_newlen.csv
 
 ---
 
-## 5. 🧠 Judging System (LLM-as-a-Judge)
+## 5.  Judging System (LLM-as-a-Judge)
 
 Judging script:
 
@@ -196,7 +212,30 @@ This discourages "fluff padding" in loose answers.
 
 ---
 
-## ✔️ Summary
+## 7. DPO Data Format
+
+Example DPO pair:
+
+```json
+  {
+  "story_id": 12,
+  "prompt": "...",
+  "chosen": "ending with higher score...",
+  "rejected": "ending with lower score...",
+  "score_chosen": 4.0,
+  "score_rejected": 3.2
+  }
+```
+
+This is built by pairing:
+ - one high-quality judge answer
+ - with the local answer for the same prompt.
+
+
+
+---
+
+##  Summary
 
 - Built a high-quality RM from LLM-as-Judge scored data.  
 - Applied RM for reranking sampled strict-prompt generations.  
@@ -210,5 +249,29 @@ This discourages "fluff padding" in loose answers.
 # 📎 Final Presentation Slides (again)
 
 https://docs.google.com/presentation/d/1Lem_2CszmDKFT3NH2uDBCEG7Dk8QRoTtezvs2DWa2HE/edit?usp=sharing
+
+#  Quick File Glossary
+
+ - train/strict_scored_train1000.jsonl
+   1000 prompts, each scored twice by LLM-as-Judge (~2000 records).
+
+ - train/strict_scored_train1000_local.jsonl
+   Local model answers for the same 1000 prompts.
+   Generally low quality; used as the “rejected” side for DPO.
+
+ - data/rocstories/strict_scored_train1000_all.jsonl
+   Merged judge A + judge B + local answers (~3000 records).
+
+ - app/rm/train_rm.py
+   Trains the Reward Model.
+
+ - app/rm/gen_and_rerank.py
+   Generates N=3 local candidates and reranks with RM.
+
+ - data/rocstories/narrative_scores_test500_newrubric_base3_newlen.csv
+   Scores for loose/moderate/strict base-model runs under the new rubric.
+
+ - data/rocstories/narrative_scores_test500_strict_rm_rerank3_newlen.csv
+   Scores for strict + RM rerank (N=3) under the new rubric.
 
 ---
