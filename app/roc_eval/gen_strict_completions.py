@@ -1,21 +1,15 @@
 # app/roc_eval/gen_strict_completions.py
-# 1) Read ROCStories-style train.csv (background, reference, etc.)
-# 2) Use OpenAI (e.g. gpt-4.1-mini) to generate ONLY a strong "prompt_strict"
-# 3) Call local base model (e.g. DeepSeek-R1) with prompt_strict to generate 2 completions
+# 1) Read ROCStories-style train.csv
+# 2) Use OpenAI to generate ONLY a strong "prompt_strict"
+# 3) Use OpenAI to generate 2 completions with prompt_strict
 # 4) Save to JSONL for later judging / DPO / reward modeling
 
 import os
 import json
 import argparse
+import re
 import pandas as pd
-
 from openai import OpenAI
-from transformers import (
-    AutoTokenizer,
-    AutoModelForCausalLM,
-    BitsAndBytesConfig,
-    pipeline,
-)
 
 # ---------- OpenAI: generate strong prompt only ----------
 
@@ -39,6 +33,11 @@ The prompt MUST:
 - Explicitly include the line: "Beginning: <beginning text>".
 - Ask the model to write a continuation (not to choose between options).
 - Be self-contained.
+- Explicitly require: "Write exactly 3 to 5 sentences."
+- Explicitly require: "Do not repeat the beginning or the instructions."
+- Explicitly require: "Do not include any preface like 'Just the story', 'No markdown', or similar."
+- Explicitly require: "Output only the continuation. No analysis."
+- Add a failure mode: If you cannot comply, output exactly: INVALID
 
 Return a JSON object with exactly this field:
 {
@@ -56,9 +55,6 @@ def get_openai_client():
 
 
 def extract_json_block(text: str):
-    """
-    Robust JSON parse helper, compatible with ```json ... ``` wrapping.
-    """
     text = text.strip()
     if text.startswith("```"):
         parts = text.split("```")
@@ -70,16 +66,7 @@ def extract_json_block(text: str):
     return json.loads(text)
 
 
-def build_strict_prompt_for_item(
-    client,
-    openai_model: str,
-    background: str,
-    reference: str,
-    beginning: str,
-) -> str:
-    """
-    Use OpenAI once to get a single strong prompt: prompt_strict.
-    """
+def build_strict_prompt_for_item(client, openai_model: str, background: str, reference: str, beginning: str) -> str:
     user_input = f"""
 background:
 {background}
@@ -90,99 +77,19 @@ reference:
 beginning:
 {beginning}
 """
-
     resp = client.responses.create(
         model=openai_model,
         instructions=PROMPT_SYSTEM_TEXT,
         input=user_input,
-        temperature=0.0,  # deterministic prompt template
+        temperature=0.0,
     )
-
-    # Keep the same pattern as other scripts (build_prompts.py / judge_llm.py)
-    text = resp.output_text
-    data = extract_json_block(text)
+    data = extract_json_block(resp.output_text)
     return data["prompt_strict"]
 
 
-# ---------- Local model (DeepSeek / Qwen etc.) ----------
-
-_LOCAL_PIPELINE = None
-_LOCAL_TOKENIZER = None
-
-
-def init_local_pipeline(local_model_id: str):
-    """Lazy-load local base model in 4-bit."""
-    global _LOCAL_PIPELINE, _LOCAL_TOKENIZER
-    if _LOCAL_PIPELINE is not None:
-        return
-
-    print(f"[local] loading base model: {local_model_id}")
-    bnb = BitsAndBytesConfig(
-        load_in_4bit=True,
-        bnb_4bit_compute_dtype="float16",
-    )
-    model = AutoModelForCausalLM.from_pretrained(
-        local_model_id,
-        quantization_config=bnb,
-        device_map="auto",
-        trust_remote_code=True,
-    )
-    tok = AutoTokenizer.from_pretrained(
-        local_model_id,
-        use_fast=True,
-        trust_remote_code=True,
-    )
-    if tok.pad_token is None:
-        tok.pad_token = tok.eos_token
-
-    pipe = pipeline(
-        "text-generation",
-        model=model,
-        tokenizer=tok,
-        device_map="auto",
-    )
-
-    _LOCAL_PIPELINE = pipe
-    _LOCAL_TOKENIZER = tok
-    print("[local] model loaded.")
-
-
-def call_local_model(
-    prompt: str,
-    max_new_tokens: int = 256,
-    num_return_sequences: int = 2,
-):
-    """
-    Generate multiple completions with the strong prompt.
-    Sampling config matches your requirement.
-    """
-    if _LOCAL_PIPELINE is None or _LOCAL_TOKENIZER is None:
-        raise RuntimeError("Local pipeline is not initialized.")
-
-    pipe = _LOCAL_PIPELINE
-    tok = _LOCAL_TOKENIZER
-
-    outputs = pipe(
-        prompt,
-        max_new_tokens=max_new_tokens,
-        do_sample=True,
-        temperature=0.7,
-        top_p=0.9,
-        top_k=50,
-        num_return_sequences=num_return_sequences,
-        pad_token_id=tok.eos_token_id,
-        eos_token_id=tok.eos_token_id,
-    )
-    return [o["generated_text"] for o in outputs]
-
-
-# ---------- Helpers: guess beginning from background + reference ----------
+# ---------- Helpers ----------
 
 def guess_beginning(background: str, reference: str) -> str:
-    """
-    Try to recover 'beginning' by removing the reference suffix if possible.
-    Fallback: first two sentences.
-    """
     bg = background.strip()
     ref = reference.strip()
     if ref and ref in bg:
@@ -197,46 +104,64 @@ def guess_beginning(background: str, reference: str) -> str:
     return bg
 
 
-# ---------- Main: generate strict completions ----------
+def clean_completion_text(text: str) -> str:
+    if not text:
+        return text
+    t = text.strip()
+
+    # Remove common prefatory junk
+    t = re.sub(r'^(no quotes\.?|no markdown\.?|just the story\.?|no analysis\.?)\s*', '', t, flags=re.I)
+
+    # Hard remove if model echoed instructions
+    t = re.sub(r'(?is)beginning:\s.*?\n\n', '', t).strip()
+
+    return t
+
+
+def truncate_to_3_5_sentences(text: str, max_sents: int = 5) -> str:
+    sents = re.split(r'(?<=[.!?])\s+', text.strip())
+    sents = [s for s in sents if s]
+    if len(sents) <= max_sents:
+        return text.strip()
+    return " ".join(sents[:max_sents]).strip()
+
+
+# ---------- OpenAI: generate completions ----------
+
+def call_openai_model(
+    client,
+    model: str,
+    prompt: str,
+    num_return_sequences: int = 2,
+    temperature: float = 0.7,
+    top_p: float = 0.9,
+    max_output_tokens: int = 180,
+):
+    # We call the model multiple times to mimic num_return_sequences.
+    # This is predictable and easy to debug.
+    outs = []
+    for _ in range(num_return_sequences):
+        resp = client.responses.create(
+            model=model,
+            input=prompt,
+            temperature=temperature,
+            top_p=top_p,
+            max_output_tokens=max_output_tokens,
+        )
+        outs.append(resp.output_text.strip())
+    return outs
+
+
+# ---------- Main ----------
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--csv",
-        type=str,
-        default="data/rocstories/train.csv",
-        help="ROCStories csv file with 'background' and 'reference' columns.",
-    )
-    parser.add_argument(
-        "--out_jsonl",
-        type=str,
-        default="data/rocstories/strict_gen_train1000.jsonl",
-        help="Output JSONL path for strict-prompt completions.",
-    )
-    parser.add_argument(
-        "--local_model_id",
-        type=str,
-        default="deepseek-ai/DeepSeek-R1-Distill-Llama-8B",
-        help="Local base model id (Hugging Face).",
-    )
-    parser.add_argument(
-        "--openai_model",
-        type=str,
-        default="gpt-4.1-mini",
-        help="OpenAI model name for strict prompt generation.",
-    )
-    parser.add_argument(
-        "--max_rows",
-        type=int,
-        default=1000,
-        help="Max number of rows to process from CSV (for budget).",
-    )
-    parser.add_argument(
-        "--max_new_tokens",
-        type=int,
-        default=256,
-        help="Max new tokens per local completion.",
-    )
+    parser.add_argument("--csv", type=str, default="data/rocstories/train.csv")
+    parser.add_argument("--out_jsonl", type=str, default="data/rocstories/strict_gen_train1000.jsonl")
+    parser.add_argument("--openai_prompt_model", type=str, default="gpt-4.1-mini")
+    parser.add_argument("--openai_gen_model", type=str, default="gpt-4o-mini")
+    parser.add_argument("--max_rows", type=int, default=1000)
+    parser.add_argument("--max_output_tokens", type=int, default=180)
     args = parser.parse_args()
 
     df = pd.read_csv(args.csv)
@@ -247,7 +172,6 @@ def main():
         raise ValueError("Input CSV must contain 'background' and 'reference' columns.")
 
     client = get_openai_client()
-    init_local_pipeline(args.local_model_id)
     os.makedirs(os.path.dirname(args.out_jsonl), exist_ok=True)
 
     with open(args.out_jsonl, "w", encoding="utf-8") as fout:
@@ -262,32 +186,45 @@ def main():
 
             prompt_strict = build_strict_prompt_for_item(
                 client=client,
-                openai_model=args.openai_model,
+                openai_model=args.openai_prompt_model,
                 background=background,
                 reference=reference,
                 beginning=beginning,
             )
 
-            print("  -> generating 2 completions with local model...")
-            completions = call_local_model(
+            if prompt_strict.strip() == "INVALID":
+                print("  -> got INVALID prompt, skip.")
+                continue
+
+            print("  -> generating 2 completions with OpenAI...")
+            raw_comps = call_openai_model(
+                client=client,
+                model=args.openai_gen_model,
                 prompt=prompt_strict,
-                max_new_tokens=args.max_new_tokens,
                 num_return_sequences=2,
+                temperature=0.7,
+                top_p=0.9,
+                max_output_tokens=args.max_output_tokens,
             )
 
-            # Each completion is one line in JSONL
-            for comp_idx, comp in enumerate(completions):
+            # Clean + truncate
+            comps = []
+            for c in raw_comps:
+                c = clean_completion_text(c)
+                c = truncate_to_3_5_sentences(c, max_sents=5)
+                comps.append(c)
+
+            for comp_idx, comp in enumerate(comps):
                 rec = {
                     "story_id": story_id,
                     "completion_id": comp_idx,
                     "prompt_strict": prompt_strict,
-                    "prompt": prompt_strict,  # unified field name for later
+                    "prompt": prompt_strict,
                     "background": background,
                     "reference": reference,
                     "beginning": beginning,
                     "completion": comp,
                 }
-                # Keep any extra metadata from CSV (category, split, etc.)
                 for col in df.columns:
                     if col not in rec:
                         rec[col] = row[col]

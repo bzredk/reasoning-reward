@@ -14,7 +14,8 @@ services:
       - ./data:/workspace/data
       - ./checkpoints:/workspace/ckpt
       - ./hf_cache:/root/.cache/huggingface
-      - ./models:/workspace/models   # <-- Windows-safe cache mount
+      - ./models:/workspace/models
+      - ./models:/workspace/train   # <-- Windows-safe cache mount
     # GPU options:
     # 1) Newer Compose often works with this 'deploy' stanza (ignored on classic compose, safe to keep):
     deploy:

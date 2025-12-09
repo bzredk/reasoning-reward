@@ -1,8 +1,11 @@
 # Reasoning Project
 
+**Final Presentation Slides:**  
+https://docs.google.com/presentation/d/1Lem_2CszmDKFT3NH2uDBCEG7Dk8QRoTtezvs2DWa2HE/edit?usp=sharing
+
 ---
 
-## Submissions
+# Submissions
 
 All submission materials will be updated in the repository at:
 
@@ -11,6 +14,7 @@ All submission materials will be updated in the repository at:
 Please refer to this directory for the latest submission files and documentation.
 
 ---
+# Milestone 2
 
 ## Experiments & Evaluation Pipeline
 
@@ -37,4 +41,174 @@ python -m app.roc_eval.judge_llm \
     --output narrative_scores.csv \
     --openai_model gpt-4.1-mini
 ```
+
+# Milestone 3 & Final Pre Warmup
+
+---
+
+## 📘 Project Overview — Narrative Continuation Evaluation & Reward Model Training
+
+This project evaluates narrative-continuation performance across multiple prompting setups and introduces a Reward Model (RM) to improve generation quality through reranking.
+
+We use **ROCStories**, a dataset of short 5-sentence stories with a missing ending.  
+The goal is to evaluate how well an LLM can produce a coherent continuation given different prompt strictness levels.
+
+---
+
+## 1. 📂 Training Data Pipeline
+
+We construct several JSONL datasets from 1000 ROCStories items.
+
+---
+
+### **1.1 strict_scored_train1000.jsonl**
+- For each of 1000 story beginnings, a high-quality **LLM-as-Judge** scores **two completions**.
+- Each completion is rated across five dimensions:
+  - *Information Completeness*
+  - *Factual Accuracy*
+  - *Relevance*
+  - *Logical Coherence*
+  - *Creativity*
+- Produces **2000 high-quality training samples**.
+
+---
+
+### **1.2 strict_scored_train1000_local.jsonl**
+- A **small local LLM** generates an answer for each of the 1000 stories.
+- These answers tend to be low quality → useful as **negative samples** for DPO.
+- Also scored by LLM-as-Judge.
+
+---
+
+### **1.3 strict_scored_train1000_all.jsonl**
+A combined dataset:
+
+| Source | Count |
+|-------|-------|
+| Judge-scored answer A | 1000 |
+| Judge-scored answer B | 1000 |
+| Local model answer | 1000 |
+| **Total** | **3000** |
+
+Used for:
+- **Reward Model (RM) training**  
+- **DPO training** (preference pairs: Good vs Local)
+
+---
+
+## 2. 🎯 Reward Model (RM)
+
+Training script:
+
+```
+app/rm/train_rm.py
+```
+
+- Uses a **regression head** on top of Llama-8B (LoRA + 4-bit quantization).
+- Trains on all 3000 entries.
+- Target = `overall_raw` (average of the five judge dimensions).
+- The RM learns to assign higher scores to higher-quality continuations.
+
+---
+
+## 3. 🔁 RM-Guided Reranking
+
+Script:
+
+```
+app/rm/gen_and_rerank.py
+```
+
+Pipeline:
+
+1. Base LLM generates **N = 3 sampled continuations** (temperature + top-p).
+2. RM scores each candidate.
+3. Return the **highest-scoring** candidate as the selected answer.
+
+This produces much stronger strict-prompt outputs.
+
+---
+
+## 4. 🧪 Evaluation Setup — Three Baselines + RM Rerank
+
+We evaluate 500 ROCStories test examples using:
+
+1. **Loose prompt + Base model**
+2. **Moderate prompt + Base model**
+3. **Strict prompt + Base model**
+4. **Strict prompt + Base model + RM rerank (N=3)** ← *our improved method*
+5. **Strict prompt + Base model + RM rerank (N=3) +DPO** ← *in progress*
+
+Outputs judged by LLM-as-Judge with the **new rubric**.
+
+### Result files:
+```
+data/rocstories/narrative_scores_test500_newrubric_base3_newlen.csv
+data/rocstories/narrative_scores_test500_strict_rm_rerank3_newlen.csv
+```
+
+---
+
+## 5. 🧠 Judging System (LLM-as-a-Judge)
+
+Judging script:
+
+```
+app/roc_eval/judge_llm.py
+```
+
+Computes:
+
+- Information Completeness  
+- Factual Accuracy  
+- Relevance  
+- Logical Coherence  
+- Creativity & Expression  
+
+The judge outputs:
+
+- **overall_raw** = mean of five scores  
+- **overall_quality** = overall_raw + (quality-gated length bonus − verbosity penalty)
+
+### New scoring rubric includes:
+
+#### ✔️ Quality-gated length bonus  
+Only applies when:
+- prompt_type ∈ {moderate, strict}
+- answer length > threshold
+- weighted by (IC + Relevance)
+
+#### ✔️ Verbosity penalty  
+Applied when:
+- answer is long  
+- relevance or coherence is low  
+
+This discourages "fluff padding" in loose answers.
+
+---
+
+## 6. 📄 Final Files Used in Analysis
+
+| Purpose | File |
+|--------|------|
+| Baseline results | `narrative_scores_test500_newrubric_base3_newlen.csv` |
+| RM rerank results | `narrative_scores_test500_strict_rm_rerank3_newlen.csv` |
+
+---
+
+## ✔️ Summary
+
+- Built a high-quality RM from LLM-as-Judge scored data.  
+- Applied RM for reranking sampled strict-prompt generations.  
+- Compared four model configurations (loose / moderate / strict / strict+RM).  
+- Introduced a more robust evaluation rubric emphasizing relevance and coherence over verbosity.  
+- Final report will contain DPO part!
+- Final results used in the presentation deck.
+
+---
+
+# 📎 Final Presentation Slides (again)
+
+https://docs.google.com/presentation/d/1Lem_2CszmDKFT3NH2uDBCEG7Dk8QRoTtezvs2DWa2HE/edit?usp=sharing
+
 ---

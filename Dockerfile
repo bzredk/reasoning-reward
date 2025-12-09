@@ -44,6 +44,8 @@ RUN mkdir -p /workspace/data /workspace/ckpt /workspace/app
 
 # --- Your scripts ---
 COPY app/ /workspace/app/
+COPY train /workspace/train
+COPY data /workspace/data
 
 # --- Entry ---
 ENTRYPOINT ["/usr/bin/tini","--"]

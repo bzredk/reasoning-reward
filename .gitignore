@@ -42,3 +42,5 @@ app/eval_all/
 
 # Ignore specific file
 app/openrouter_client.py
+app/roc_eval/summarize_scores.py
+app/roc_eval/recompute_overall_quality.py

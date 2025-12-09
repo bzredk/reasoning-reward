@@ -1,12 +1,14 @@
 # app/roc_eval/judge_completions.py
-# 读取 strict_gen_train1000.jsonl
-# 用 OpenAI LLM-as-a-judge 打 6 维分
-# 输出 strict_scored_train1000.jsonl
+# Read strict_gen_train1000.jsonl
+# Use OpenAI LLM-as-a-judge to score 5 dimensions
+# Compute overall_raw locally (5-dim average)
+# Output strict_scored_train1000.jsonl
 
 import os
 import json
 import argparse
 from openai import OpenAI
+
 
 JUDGE_SYSTEM_PROMPT = """
 You are an expert evaluator for narrative story continuations.
@@ -17,55 +19,78 @@ You will be given:
 
 Judge ONLY the model continuation.
 
-Score each dimension from 0 to 5 (integers or decimals allowed):
+This is a story continuation faithfulness task.
+The continuation should be semantically consistent with the context and should not introduce hallucinated
+core entities/events that are unsupported by the prompt.
 
-1) Information Completeness
-- 0: irrelevant or empty
-- 1: very short (<20 words), only one tiny conclusion
-- 2: 20–50 words; covers only 1 key point
-- 3: covers about half of the important events
-- 4: covers most important events (>=75%)
-- 5: covers almost all important events (>=90%)
+Score each dimension from 0 to 5.
+Use decimals with two digits when helpful (e.g., 3.20, 4.75).
+A score of 5 should be rare and reserved for truly exceptional cases.
 
-2) Factual Accuracy
-- 0: contradicts core facts or basic physics
-- 1: 2+ major factual/causal errors
-- 2: 1 major + minor errors
-- 3: at most one small error
-- 4: only tiny ambiguities; essentially correct
-- 5: all claims consistent with prompt, world knowledge, and causal logic
+1) Information Completeness (0–5)
+Measures whether the continuation meaningfully completes the narrative implied by the prompt
+given the requested length/format.
+- 0: empty, nonsensical, or unrelated continuation.
+- 1: extremely thin ending; only a minimal closure with little narrative content.
+- 2: partial ending that addresses only one small aspect of the situation; feels underdeveloped.
+- 3: reasonably completes the main thread but leaves key implied outcomes vague or abrupt.
+- 4: provides a well-rounded ending that resolves most salient issues or tensions introduced by the prompt.
+- 5: exceptionally complete and satisfying resolution; fully addresses the prompt’s implied narrative arc
+     without unnecessary filler.
 
-3) Relevance
-- 0: completely off-topic
-- 1: >50% off-topic
-- 2: 30–50% off-topic
-- 3: mostly relevant, some fluff
-- 4: very minor redundancy (<10%)
-- 5: fully on-topic, no unnecessary content
+2) Factual Accuracy & Context Faithfulness (0–5)
+This dimension includes faithfulness to the prompt’s entities, events, and causal state.
+Penalize hallucinations here when they introduce unsupported core facts or contradictions.
+- 0: multiple severe contradictions with the prompt or impossible events that break basic logic/physics.
+- 1: clear contradiction with prompt facts/causal chain, or introduces a major impossible claim.
+- 2: introduces a major unsupported event/entity that alters the story state or meaning
+     (even if not an explicit contradiction).
+- 3: adds unsupported detail that noticeably changes interpretation but is not a direct contradiction.
+- 4: minor unverifiable detail that does not affect core story logic; overall faithful.
+- 5: fully consistent with the prompt and commonsense; no invented facts that change the story state.
 
-4) Logical Coherence & Clarity
-- 0: self-contradictory or no chain of events
-- 1: almost no reasoning; just a final line
-- 2: many jumps; key steps missing
-- 3: mostly coherent; a few leaps
-- 4: clear, reproducible narrative logic
-- 5: exceptionally clear, stepwise and consistent
+Guideline:
+If the continuation introduces a new core entity/event not supported by the prompt,
+deduct at least 1.0 point in this dimension.
 
-5) Creativity & Expression
-- 0: dull, template-like, no originality
-- 1: minimal variation; very plain
-- 2: one simple example or image
-- 3: some vivid language or interesting detail
-- 4: multiple fresh angles or details; fluent style
-- 5: highly original, engaging, strong “wow” factor
+3) Relevance & Constraint Following (0–5)
+Measures how tightly the continuation stays on-topic and follows the prompt’s instructions.
+Penalize unnecessary or off-topic additions, especially new major plot elements not grounded in context.
+- 0: completely off-topic or ignores key instructions.
+- 1: largely off-topic or heavily violates constraints; more than half of content is irrelevant.
+- 2: significant drift; introduces multiple unnecessary elements or ignores important constraints.
+- 3: mostly relevant but includes noticeable fluff, redundancy, or mild instruction slippage.
+- 4: strongly on-topic with only minor extra detail; follows constraints well.
+- 5: fully on-topic, concise, and strictly follows constraints; no unnecessary content.
 
-6) Overall Quality
-- 0: unreadable or seriously misleading
-- 1: most other dimensions ≤1
-- 2: most other dimensions ≤2
-- 3: roughly medium quality
-- 4: good quality; no dimension ≤1
-- 5: strong story; at least two dimensions =5
+Guideline:
+If the continuation introduces major new content unrelated to the provided context,
+deduct in this dimension even if the writing is fluent.
+
+4) Logical Coherence & Clarity (0–5)
+Measures whether the continuation forms a clear, stepwise narrative logic with sensible transitions.
+- 0: incoherent, self-contradictory, or no discernible chain of events.
+- 1: almost no narrative reasoning; disconnected statements or an abrupt one-liner.
+- 2: multiple logical jumps; missing key steps; hard to follow causal progression.
+- 3: generally coherent with a few leaps or unclear transitions.
+- 4: clear, plausible progression; easy to follow cause-effect and timeline.
+- 5: exceptionally clear and well-structured narrative logic with smooth transitions and strong readability.
+
+5) Creativity & Expression (0–5)
+Measures originality and engaging writing while remaining faithful to the context.
+Creativity should not excuse hallucination or contradiction.
+- 0: dull, template-like, or unnatural phrasing; no originality.
+- 1: very plain and repetitive; minimal stylistic effort.
+- 2: somewhat acceptable but generic; few distinctive details.
+- 3: includes some vivid language or interesting detail that fits the story.
+- 4: multiple fresh but context-appropriate details; fluent and engaging style.
+- 5: highly original yet perfectly context-consistent; memorable and emotionally effective.
+
+Calibration rules:
+- Do not default to 5s for well-formed text.
+- Use 3.5–4.6 for good but not outstanding continuations.
+- Reflect small but real differences with decimals when appropriate.
+- Avoid giving identical overall impressions across many samples unless genuinely indistinguishable.
 
 Think carefully but DO NOT output your reasoning.
 Return ONLY a JSON object:
@@ -76,14 +101,12 @@ Return ONLY a JSON object:
   "relevance": 0-5,
   "logical_coherence": 0-5,
   "creativity_expression": 0-5,
-  "overall_quality": 0-5,
   "comments": "<short free-text comment in <=30 words>"
 }
 """
 
 
 def extract_json_block(text: str):
-    """Handle ```json ... ``` wrapping if present."""
     text = text.strip()
     if text.startswith("```"):
         parts = text.split("```")
@@ -93,6 +116,21 @@ def extract_json_block(text: str):
         if text.startswith("json"):
             text = text[4:].strip()
     return json.loads(text)
+
+
+def safe_float(x, default=0.0):
+    try:
+        return float(x)
+    except Exception:
+        return float(default)
+
+
+def clip_score(x: float, lo: float = 0.0, hi: float = 5.0) -> float:
+    if x < lo:
+        return lo
+    if x > hi:
+        return hi
+    return x
 
 
 def main():
@@ -150,22 +188,30 @@ Model continuation:
                 model=args.openai_model,
                 instructions=JUDGE_SYSTEM_PROMPT,
                 input=user_input,
+                temperature=0.0,
             )
 
             scores = extract_json_block(resp.output_text)
+
+            ic = clip_score(safe_float(scores.get("information_completeness", 0.0)))
+            fa = clip_score(safe_float(scores.get("factual_accuracy", 0.0)))
+            rel = clip_score(safe_float(scores.get("relevance", 0.0)))
+            lc = clip_score(safe_float(scores.get("logical_coherence", 0.0)))
+            ce = clip_score(safe_float(scores.get("creativity_expression", 0.0)))
+
+            overall_raw = (ic + fa + rel + lc + ce) / 5.0
 
             out_record = {
                 "story_id": story_id,
                 "prompt": prompt,
                 "completion": completion,
-                "scores": {
-                    "information_completeness": float(scores.get("information_completeness", 0.0)),
-                    "factual_accuracy": float(scores.get("factual_accuracy", 0.0)),
-                    "relevance": float(scores.get("relevance", 0.0)),
-                    "logical_coherence": float(scores.get("logical_coherence", 0.0)),
-                    "creativity_expression": float(scores.get("creativity_expression", 0.0)),
-                    "overall_quality": float(scores.get("overall_quality", 0.0)),
-                },
+                "information_completeness": ic,
+                "factual_accuracy": fa,
+                "relevance": rel,
+                "logical_coherence": lc,
+                "creativity_expression": ce,
+                "overall_quality": overall_raw,
+                "overall_raw": overall_raw,
                 "judge_comments": scores.get("comments", ""),
             }
 
