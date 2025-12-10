@@ -15,25 +15,27 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     locale-gen en_US.UTF-8
 
 # --- Python deps: core DL + RLHF + eval + retrieval + logging ---
-    RUN pip install -U pip setuptools wheel && \
+RUN pip install -U pip setuptools wheel && \
     pip install -U \
-        "transformers>=4.44" "accelerate>=0.34" "datasets" "peft>=0.11.1" \
-        "trl>=0.9.6" "bitsandbytes>=0.43" \
+        "transformers>=4.56.1" \
+        "accelerate>=1.4.0" \
+        "datasets>=3.0.0" \
+        "peft>=0.11.1" \
+        "trl==0.26.0" \
+        "bitsandbytes>=0.43" \
         numpy scipy pandas scikit-learn einops sympy networkx \
         evaluate rouge-score sacrebleu bert-score \
         "lm-eval==0.4.2" \
         faiss-cpu rank-bm25 rapidfuzz \
         nltk spacy sentencepiece protobuf \
         wandb tensorboard rich loguru \
-        "vllm>=0.5.3" fastapi uvicorn openai
+        fastapi uvicorn openai
 
+# Optional vLLM (pin to avoid TRL compatibility warnings)
+RUN pip install "vllm==0.11.2"
 
 # --- OPTIONAL: FlashAttention 2 (speed/memory). Safe to skip if it fails. ---
-# Prebuilt wheels often work; fallback may compile (can be slow).
 RUN pip install --no-build-isolation "flash-attn>=2.6.1" || true
-# Prefer Flash-Attn for Transformers when available.
-RUN pip install --no-cache-dir transformers peft bitsandbytes accelerate datasets trl==0.9.6
-
 
 ENV FLASH_ATTENTION=1 \
     XFORMERS_DISABLED=1

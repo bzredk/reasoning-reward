@@ -1,18 +1,20 @@
-# app/roc_eval/judge_llm.py
-# Read narrative_with_prompts.csv, call OpenAI as LLM-as-a-judge,
-# and save scores to narrative_scores.csv.
-#
 # Scoring:
 # - overall_raw = average of 5 dimensions
 # - overall_quality = overall_raw + gated length bonus - verbosity penalty
 #
-# Length bonus (v2):
-# - < 30 words: 0
-# - 30–80 words: linear up to +1.0
-# - > 80 words: capped at +1.0
-# - bonus multiply lambda_gate(ic, rel) as gate control
-# - long and low relevence/low Coherence  verbosity_penalty
+# Length bonus (quality-gated):
+# - <= 40 words: 0
+# - 40–120 words: linear up to +1.0
+# - >= 120 words: capped at +1.0
+# - loose prompts get half bonus (because they are easier to pad)
+#
+# Gate λ:
+# - lambda = ((IC + REL) / 10) ** 2 in [0, 1]
+#
+# Verbosity penalty:
+# - length > 120 and low relevance/coherence -> penalty
 # - overall_quality clipped to [0, 5]
+
 
 import os
 import json
@@ -159,47 +161,51 @@ def extract_json_block(text: str) -> Dict[str, Any]:
     return json.loads(s)
 
 
-# ---- new length-related helpers ----
+# ---- length-related helpers (aligned with recompute_overall_quality rubric) ----
+def length_bonus_v2(prompt_type: str, length_words: int) -> float:
+    """Length bonus in [0, 1]:
+    - <= 40 words: 0.0
+    - 40–120 words: linear up to 1.0
+    - >= 120 words: 1.0
+    Loose prompts get half bonus.
+    """
+    if length_words <= 40:
+        base = 0.0
+    elif length_words >= 120:
+        base = 1.0
+    else:
+        # from 40 -> 120 linearly
+        base = (length_words - 40) / 80.0
 
-def length_bonus_v2(length_words: int) -> float:
-    """
-    Length bonus:
-    - < 30 words: 0
-    - 30–80 words: linear up to +1.0
-    - > 80 words: capped at +1.0
-    """
-    if length_words < 30:
-        return 0.0
-    if length_words <= 80:
-        return (length_words - 30) / 50.0
-    return 1.0
+    pt = (prompt_type or "").lower()
+    if pt == "loose":
+        base *= 0.5
+
+    return base
 
 
 def lambda_gate(ic: float, rel: float) -> float:
+    """Gate factor for length bonus.
+    lambda = ((IC + REL) / 10)^2 in [0, 1].
     """
-    Gate for length bonus based on Information Completeness + Relevance.
-    ic, rel in [0,5].
-    """
-    lam = (ic + rel - 4.0) / 6.0
-    return max(0.0, min(1.0, lam))
+    s = (ic + rel) / 10.0
+    if s < 0.0:
+        s = 0.0
+    if s > 1.0:
+        s = 1.0
+    return s * s
 
 
-def verbosity_penalty(length_words: int, rel: float, lc: float,
-                      alpha: float = 0.25, beta: float = 0.25) -> float:
+def verbosity_penalty(length_words: int, rel: float, lc: float) -> float:
+    """Verbosity penalty for long but low-quality answers:
+    - length > 120 and relevance < 4.0 -> +0.3
+    - length > 140 and logical_coherence < 3.5 -> additional +0.2
     """
-    Penalize long but low-quality answers:
-    - only trigger when length > 100
-    - if relevance < 4.0 -> +alpha
-    - if logical_coherence < 3.5 -> +beta
-    """
-    if length_words <= 100:
-        return 0.0
-
     penalty = 0.0
-    if rel < 4.0:
-        penalty += alpha
-    if lc < 3.5:
-        penalty += beta
+    if length_words > 120 and rel < 4.0:
+        penalty += 0.3
+    if length_words > 140 and lc < 3.5:
+        penalty += 0.2
     return penalty
 
 
@@ -333,11 +339,10 @@ def main():
         overall_raw = (ic + fa + rel + lc + ce) / 5.0
 
         # new length-aware scoring
-        bonus_raw = length_bonus_v2(length_words)
+        bonus_raw = length_bonus_v2(prompt_type, length_words)
         lam = lambda_gate(ic, rel)
         penalty = verbosity_penalty(length_words, rel, lc)
         bonus_effective = lam * bonus_raw
-
         overall_quality = clip_score(overall_raw + bonus_effective - penalty)
 
         out_row = {
@@ -349,8 +354,8 @@ def main():
             "logical_coherence": lc,
             "creativity_expression": ce,
             "overall_raw": overall_raw,
-            "length_bonus_raw": bonus_raw,
-            "length_bonus": bonus_effective,
+            "length_bonus": bonus_raw,
+            "length_bonus_gated": bonus_effective,
             "verbosity_penalty": penalty,
             "overall_quality": overall_quality,
             "answer_length_words": length_words,

@@ -203,7 +203,7 @@ This discourages "fluff padding" in loose answers.
 
 ---
 
-## 6. 📄 Final Files Used in Analysis
+## 6.  Final Files Used in Analysis
 
 | Purpose | File |
 |--------|------|
@@ -246,32 +246,124 @@ This is built by pairing:
 
 ---
 
-# 📎 Final Presentation Slides (again)
+# Milestone 4
 
-https://docs.google.com/presentation/d/1Lem_2CszmDKFT3NH2uDBCEG7Dk8QRoTtezvs2DWa2HE/edit?usp=sharing
+This milestone evaluates how preference optimization (DPO) and reward-model reranking improve **strict** story continuation quality compared with earlier baselines.
+
+## Experiment Overview
+
+We compare six settings on the ROCStories test set:
+
+1) **loose + base (single-sample)**  
+   The base model answers the loose prompt once.
+
+2) **moderate + base (single-sample)**  
+   The base model answers the moderate prompt once.
+
+3) **strict + base (single-sample)**  
+   The base model answers the strict prompt once.
+
+4) **strict + base + RM rerank (N=3)**  
+   The base model samples 3 candidates using temperature/top_p.  
+   A trained Reward Model scores the 3 and selects the best.
+
+5) **strict + DPO (single-sample)**  
+   The strict prompt is answered once by the DPO-finetuned model.
+
+6) **strict + DPO + RM rerank (N=3)**  
+   The DPO model samples 3 candidates; RM reranks and selects the best.
+
+All generations use the same sampling parameters where applicable to ensure fair comparison.
+
+## Evaluation
+
+We use an LLM-as-Judge to score each answer on five dimensions:
+
+- information_completeness  
+- factual_accuracy  
+- relevance  
+- logical_coherence  
+- creativity_expression  
+
+We report:
+- **overall_raw**: mean of the five dimensions  
+- **overall_quality**: overall_raw adjusted by the updated length/verbosity rule (new rubric)
+
+Aggregations are computed by `setting` over the strict subset and compared against earlier baseline runs.
+
+## What’s New in Milestone 4
+
+Milestone 4 adds two new strict-condition improvements:
+
+### A) Strict + DPO (single-sample)
+- Trains a DPO LoRA adapter using strict preference pairs:
+  - `chosen` = high-scoring judge outputs
+  - `rejected` = lower-quality (often local) outputs
+- Goal: directly shift the base model toward strict-format, instruction-following continuations.
+
+### B) Strict + DPO + RM rerank (N=3)
+- Combines preference-optimized generation with RM selection.
+- Goal: test whether RM provides additional gains after DPO,
+  especially by filtering remaining verbose/meta or weak-structure samples.
+
+## Expected Interpretation
+
+- **Base strict vs. strict + RM** isolates the benefit of RM selection.  
+- **Strict + DPO vs. strict base** isolates the benefit of preference optimization.  
+- **Strict + DPO + RM vs. strict + DPO** tests whether RM still adds value after DPO.
+
+In short, Milestone 4 focuses on whether **DPO** improves strict adherence and
+whether **RM reranking** remains a useful second-stage filter on top of DPO.
 
 #  Quick File Glossary
 
- - train/strict_scored_train1000.jsonl
-   1000 prompts, each scored twice by LLM-as-Judge (~2000 records).
+- train/strict_scored_train1000.jsonl  
+  1000 prompts, each scored twice by LLM-as-Judge (~2000 records).
 
- - train/strict_scored_train1000_local.jsonl
-   Local model answers for the same 1000 prompts.
-   Generally low quality; used as the “rejected” side for DPO.
+- train/strict_scored_train1000_local.jsonl  
+  Local model answers for the same 1000 prompts.  
+  Generally low quality; used as the “rejected” side for DPO.
 
- - data/rocstories/strict_scored_train1000_all.jsonl
-   Merged judge A + judge B + local answers (~3000 records).
+- data/rocstories/strict_scored_train1000_all.jsonl  
+  Merged judge A + judge B + local answers (~3000 records).
 
- - app/rm/train_rm.py
-   Trains the Reward Model.
+- train/strict_scored_train1000_reward.jsonl  
+  Reward-model training format derived from `*_all.jsonl` (~3000 records).  
+  Each line contains prompt + completion + score fields.
 
- - app/rm/gen_and_rerank.py
-   Generates N=3 local candidates and reranks with RM.
+- train/strict_scored_train1000_dpo.jsonl  
+  DPO training pairs derived from `*_all.jsonl` (~1000 pairs).  
+  Each record contains `prompt`, `chosen`, `rejected`, and their scores.
 
- - data/rocstories/narrative_scores_test500_newrubric_base3_newlen.csv
-   Scores for loose/moderate/strict base-model runs under the new rubric.
+- app/rm/train_rm.py  
+  Trains the Reward Model (regression) with 4-bit + LoRA.
 
- - data/rocstories/narrative_scores_test500_strict_rm_rerank3_newlen.csv
-   Scores for strict + RM rerank (N=3) under the new rubric.
+- app/rm/gen_and_rerank.py  
+  Generates N=3 sampled candidates from the base model and reranks using the trained RM.
+
+- app/dpo/train_dpo.py  
+  Trains a DPO LoRA adapter from `strict_scored_train1000_dpo.jsonl` (supports 4-bit).
+
+- app/roc_eval/judge_llm.py  
+  LLM-as-Judge scoring tool.  
+  Produces 5-dim scores + `overall_raw` (mean of 5 dims) + adjusted `overall_quality` (your length rule).
+
+- data/rocstories/narrative_with_prompts_test500.csv  
+  Test set with loose/moderate/strict prompt variants and metadata.  
+  Used as the generation input.
+
+- data/rocstories/narrative_scores_test500_newrubric_base3_newlen.csv  
+  Scores for loose/moderate/strict base-model runs under the new rubric/length rule.
+
+- data/rocstories/narrative_scores_test500_strict_rm_rerank3_newlen.csv  
+  Scores for strict + RM rerank (N=3) under the new rubric/length rule.
+
+- data/rocstories/narrative_scores_test500_strict_dpo_sample1.csv  
+  Scores for strict + DPO single-sample generation.
+
+- data/rocstories/narrative_scores_test500_strict_dpo_rm_rerank3.csv  
+  Scores for strict + DPO + RM rerank (N=3).
+
+
 
 ---

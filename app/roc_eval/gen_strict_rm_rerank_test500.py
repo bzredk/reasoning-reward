@@ -74,31 +74,35 @@ def generate_candidates(
     prompt: str,
     num_candidates: int,
     max_new_tokens: int,
-    temperature: float,
-    top_p: float,
-    top_k: int,
-) -> List[str]:
-    inputs = tok(prompt, return_tensors="pt", truncation=True).to(model.device)
+    min_new_tokens: int = 0,
+    temperature: float = 0.7,
+    top_p: float = 0.9,
+    top_k: int = 50,
+):
+    inputs = tok(prompt, return_tensors="pt").to(model.device)
+    prompt_len = inputs["input_ids"].shape[1]
 
     out = model.generate(
         **inputs,
-        max_new_tokens=max_new_tokens,
         do_sample=True,
+        num_return_sequences=num_candidates,
+        max_new_tokens=max_new_tokens,
+        min_new_tokens=min_new_tokens if min_new_tokens and min_new_tokens > 0 else None,
         temperature=temperature,
         top_p=top_p,
         top_k=top_k,
-        num_return_sequences=num_candidates,
         pad_token_id=tok.eos_token_id,
         eos_token_id=tok.eos_token_id,
     )
 
     texts = []
     for i in range(out.size(0)):
-        full = tok.decode(out[i], skip_special_tokens=True)
-        if full.startswith(prompt):
-            full = full[len(prompt):].lstrip()
-        texts.append(full.strip())
+        new_ids = out[i, prompt_len:]      
+        text = tok.decode(new_ids, skip_special_tokens=True).strip()
+        texts.append(text)
+
     return texts
+
 
 
 @torch.no_grad()
