@@ -313,7 +313,13 @@ Milestone 4 adds two new strict-condition improvements:
 - **Strict + DPO + RM vs. strict + DPO** tests whether RM still adds value after DPO.
 
 In short, Milestone 4 focuses on whether **DPO** improves strict adherence and
-whether **RM reranking** remains a useful second-stage filter on top of DPO.
+whether **RM reranking** remains a useful second-stage filter on top of DPO. 
+
+**More details see in PPT and report!**
+
+
+
+---
 
 #  Quick File Glossary
 
@@ -364,6 +370,80 @@ whether **RM reranking** remains a useful second-stage filter on top of DPO.
 - data/rocstories/narrative_scores_test500_strict_dpo_rm_rerank3.csv  
   Scores for strict + DPO + RM rerank (N=3).
 
+
+
+---
+
+
+
+
+# Deployment Notes
+
+Because the base and fine-tuned checkpoints are large, they are **not** stored in the repo.  
+The repo only provides:
+
+- `Dockerfile`
+- `docker-compose.yml`
+- Training / evaluation scripts
+
+You should host model weights separately (HF cache, local disk, or an internal model store) and mount them into the container.
+
+## Recommended Layout
+
+On the host machine:
+
+- `/models/base/` – base 8B model (e.g. `deepseek-ai/DeepSeek-R1-Distill-Llama-8B`)
+- `/models/rm/` – RM LoRA checkpoints (`rm_ex2_beginonly`, etc.)
+- `/models/dpo/` – DPO LoRA checkpoints (`dpo_ex1_strict1000`, etc.)
+
+Then in `docker-compose.yml`:
+
+- Mount `/models` → `/workspace/models`
+- Set env vars like:
+  - `RM_DIR=/workspace/models/rm_ex2_beginonly`
+  - `DPO_DIR=/workspace/models/dpo_ex1_strict1000`
+  - `BASE_MODEL=deepseek-ai/DeepSeek-R1-Distill-Llama-8B`
+
+The scripts already take `--base_model`, `--rm_dir`, `--dpo_dir` as CLI flags, so you can point them to these paths.
+
+## GPU / VRAM Guidelines
+
+All fine-tuning uses **4-bit + LoRA** to keep memory modest.
+
+**Training (RM / DPO)**  
+- 16 GB VRAM is comfortable for the current configs (batch size = 1, grad accum, 4-bit).
+
+**Inference only**
+
+- **Base 8B model, single strict/loose/moderate generation (4-bit)**  
+  → _8–10 GB VRAM_ is usually enough.
+
+- **Strict + RM rerank (N=3)**  
+  - Load generator + RM (sequence classification head).  
+  - 3 samples per prompt.  
+  → Recommend _10–12 GB VRAM_. (More is safer if you plan to batch requests.)
+
+- **Strict + DPO (single-sample)**  
+  - Same as base, with a LoRA adapter on top.  
+  → Also _8–10 GB VRAM_ is typically fine.
+
+- **Strict + DPO + RM rerank (N=3)**  
+  - Load DPO-tuned generator + RM, sample 3 candidates and rerank.  
+  → Recommend at least _12 GB VRAM_ for comfort; _16 GB_ if you want room for larger context or batch serving.
+
+## Suggested Deployment Flow
+
+1. **Pull base model** on the host (e.g. `huggingface-cli download` or first run in a dev container).
+2. **Train RM / DPO** once on a 16 GB GPU box, saving LoRA adapters under `/models/rm` and `/models/dpo`.
+3. **Build the Docker image** from the repo (`docker build ...`).
+4. **Use `docker-compose up`** with:
+   - `./models:/workspace/models` volume
+   - `NVIDIA_VISIBLE_DEVICES` / `--gpus all` configured
+5. Expose a simple CLI or HTTP endpoint that:
+   - Calls base / DPO model for generation.
+   - Optionally calls RM for rerank (N=3) in the strict settings.
+
+This way, the repo stays lightweight, and you can swap in newer checkpoints just by updating the mounted `/models` directory.
 
 
 ---
