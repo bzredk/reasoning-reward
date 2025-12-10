@@ -447,3 +447,48 @@ This way, the repo stays lightweight, and you can swap in newer checkpoints just
 
 
 ---
+
+# Playground 
+
+`app/playground/interactive_story.py` is a small interactive CLI for quick qualitative checks across the Milestone 4 setups (for all experiments setting).
+
+## What it does
+Loads the base 8B model once (4-bit optional), then optionally attaches:
+- **DPO LoRA** on top of the same base instance
+- **RM LoRA** on a separate sequence-classification head
+
+You can repeatedly enter a prompt and choose one mode:
+1) **base (single sample)**  
+2) **base + RM rerank (N=3)**  
+3) **DPO (single sample)**  
+4) **DPO + RM rerank (N=3)**  
+
+This design avoids loading multiple full generator instances and is meant for fast local sanity checks.
+
+## Output
+For rerank modes, the script prints:
+- raw candidates (generation order)
+- RM-ranked list (high → low)
+- the selected best completion
+
+## Demo video
+A short demonstration of the interactive workflow is included at:
+- `video/simple_show.mp4`  
+  or  
+- `submit/milestone4/video/simple_show.mp4`
+
+## Usage
+```bash
+python /workspace/app/playground/interactive_story.py \
+  --base_model deepseek-ai/DeepSeek-R1-Distill-Llama-8B \
+  --rm_dir /workspace/models/rm_ex2_beginonly \
+  --dpo_dir /workspace/models/dpo_ex1_strict1000 \
+  --load_in_4bit \
+  --num_candidates x \
+  --max_new_tokens xxx \
+  --min_new_tokens xxx \
+  --temperature xxx \
+  --top_p x \
+  --top_k x
+
+---
