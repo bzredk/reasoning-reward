@@ -1,4 +1,8 @@
-# Reasoning Project
+# Hallucination Mitigation in Reasoning Models
+
+
+**Final Presentation Video:**  
+https://youtu.be/OMA6tvSn9cM
 
 **Final Presentation Slides:**  
 https://docs.google.com/presentation/d/1Lem_2CszmDKFT3NH2uDBCEG7Dk8QRoTtezvs2DWa2HE/edit?usp=sharing
